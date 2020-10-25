@@ -2,32 +2,36 @@ const passport = require("passport");
 const User = require("../models/user.model");
 const nodemailer = require("nodemailer");
 const { session } = require("passport");
+require('dotenv').config()
 
-exports.createUser = (req, res) => {
+const OTPFactory = () => {
+    return Math.floor(100000 + Math.random() * 900000);
+};
+
+exports.createUser = (req, res, next) => {
+    let otp = OTPFactory()
     let user = new User({
         username: req.body.username,
         email: req.body.email,
         phno: req.body.phno,
+        signUpOTP: otp
     });
     User.register(user, req.body.password, (err, user) => {
         if (err) {
-            if(err) {
+            if(err.name === "UserExistsError") {
                 console.log("Username already taken.");
-                res.status(203).json({error: "Username already taken."});
-            } else {
-                console.log("Invalid credentials");
-                res.status(203).json(err);
+                return res.status(203).json({error: "Username already taken."});
             }
-        } else {
-            console.log(`${req.body.username} created an account`)
-            res.status(200);
+            console.log("Invalid credentials");
+            return res.status(203).json(err);
         }
+        console.log(`${req.body.username} created an account`)
     });
     let gmailTransport = nodemailer.createTransport({
         service: "Gmail",
         auth: {
-            user: "argon.intelligence@gmail.com",
-            pass: "1806@two000",
+            user: process.env.GMAIL_SERVICE_ID,
+            pass: process.env.GMAIL_SERVICE_PASSWORD,
         },
     });
     let mailContent = {
@@ -39,7 +43,7 @@ exports.createUser = (req, res) => {
                     Click on the following link to confirm your email id and
                     activate your account.
 
-                    http://${req.headers.host}/activate/${token}
+                    http://${req.headers.host}/activate/${otp}
                     
                     Thank you!`,
     };
@@ -49,7 +53,7 @@ exports.createUser = (req, res) => {
             return next(err);
         }
         console.log(`Email sent to ${req.body.username}`);
-        res.status(200)
+        res.status(201)
     });
 };
 
@@ -64,7 +68,7 @@ exports.activateUser = (req, res, next) => {
                 return next(err)
             }
             console.log("A user activated their account")
-            res.status(200)
+            return res.status(200)
         }
     );
 };
@@ -102,6 +106,35 @@ exports.logoutUser = (req, res) => {
 };
 
 
-exports.getUser = (req, res) => {};
-exports.passwordResetUser = (req, res) => {};
-exports.deleteUser = (req, res) => {};
+exports.getUser = async (req, res) => {
+    const user = await User.findById({ _id: req.params.id });
+    if (user) {
+        return res.status(200).json(user)
+    }
+    return res.status(404)
+};
+
+
+exports.deleteUser = (req, res) => {
+    passport.authenticate("local", (err, user) => {
+        if (err) {
+            return res.status(203).json({ error: "Invalid credentials" })
+        }
+        User.findByIdAndDelete({ _id: req.params.id }, (err) => {
+            if (err) {
+                return res.status(500)
+            }
+            return res.status(204)
+        });
+    });
+};
+
+
+exports.resetPassword = (req, res) => {
+    // send mail with reset token
+};
+
+
+exports.forgotPassword = (req, res) => {
+    // recieve post with token as param and new password in body
+};

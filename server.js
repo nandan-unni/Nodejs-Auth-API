@@ -4,6 +4,7 @@ const passport = require("passport"); // Authentication purpose
 const LocalStrategy = require("passport-local");
 const bodyParser = require("body-parser"); // Parsing data
 const expressSession = require("express-session"); // server sessions
+require('dotenv').config() // Obtaining env variables
 
 // User Model
 const User = require('./models/user.model')

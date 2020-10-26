@@ -8,7 +8,9 @@ const UserSchema = new Schema({
   phno: { type: Number, required: true },
   isActive: { type: Boolean },
   signUpOTP: { type: Number },
+  signUpOTPExpiry: { type: Date },
   passwordResetOTP: { type: Number },
+  passwordResetOTPExpiry: { type: Date }
 });
 
 UserSchema.plugin(passportLocalMongoose);
